@@ -148,6 +148,9 @@ WARNINGS
     This limitation exists because the perl TIEHASH interface currently has
     no support for multidimensional ties.
 
+VERSION
+    1.04
+
 AUTHOR
     Rob Casey <robau@cpan.org>
 

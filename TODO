@@ -1,8 +1,0 @@
-TODO list for Perl extension Tie::MLDBM
-
-	- Improve Test::More module tests
-	- Add additional component modules
-
-		Tie::MLDBM::Lock::IPC
-		Tie::MLDBM::Serialise::Dumper
-		Tie::MLDBM::Store:: ...

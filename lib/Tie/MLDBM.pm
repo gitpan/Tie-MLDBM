@@ -7,7 +7,7 @@ use strict;
 use vars qw/ @ISA $AUTOLOAD $VERSION /;
 
 @ISA = qw/ Tie::Hash /;
-$VERSION = '1.03';
+$VERSION = '1.04';
 
 
 sub AUTOLOAD {
@@ -22,15 +22,16 @@ sub AUTOLOAD {
     my @methods = qw/ EXISTS FIRSTKEY NEXTKEY /;
 
     unless ( grep /\Q$method\E/, @methods ) {
+
         croak( __PACKAGE__, '->AUTOLOAD : Unsupported method for tied object - ', $method );
+
     }
 
-    my $rv;
-    {
-        $self->{'Modules'}->{'Lock'}->lock_shared;
-        $rv = $self->{'Store'}->$method( @params );
-        $self->{'Modules'}->{'Lock'}->unlock;
-    }
+    $self->{'Modules'}->{'Lock'}->lock_shared;
+
+    my $rv = $self->{ 'Store' }->$method( @params );
+
+    $self->{'Modules'}->{'Lock'}->unlock;
 
     return $rv;
 }
@@ -44,12 +45,12 @@ sub CLEAR {
     #   by the Sync method of this class by way of re-opening the tied hash object 
     #   and storing this object reference
 
-    my $rv;
-    {
-        $self->{'Modules'}->{'Lock'}->lock_exclusive;
-        $rv = $self->{'Store'}->CLEAR( @params );
-        $self->{'Modules'}->{'Lock'}->unlock;
-    }
+    $self->{'Modules'}->{'Lock'}->lock_exclusive;
+
+    my $rv = $self->{'Store'}->CLEAR( @params );
+
+    $self->{'Modules'}->{'Lock'}->unlock;
+
     $self->Sync;
 
     return $rv;
@@ -61,20 +62,13 @@ sub DELETE {
 
     #   Acquire an exclusive lock and execute the DELETE method on the tied hash.
 
-    my $rv;
-    {
-        $self->{'Modules'}->{'Lock'}->lock_exclusive;
-        $rv = $self->{'Store'}->DELETE( @params );
-        $self->{'Modules'}->{'Lock'}->unlock;
-    }
+    $self->{'Modules'}->{'Lock'}->lock_exclusive;
+
+    my $rv = $self->{'Store'}->DELETE( @params );
+
+    $self->{'Modules'}->{'Lock'}->unlock;
 
     return $rv;
-}
-
-
-sub DESTROY {
-    my ( $self, @params ) = @_;
-    return $self->{'Store'}->DESTROY( @params );
 }
 
 
@@ -86,12 +80,11 @@ sub FETCH {
     #   component module of the Tie::MLDBM framework and returned to the calling
     #   process.
 
-    my $value;
-    {
-        $self->{'Modules'}->{'Lock'}->lock_shared;
-        $value = $self->{'Store'}->FETCH( $key );
-        $self->{'Modules'}->{'Lock'}->unlock;
-    }
+    $self->{'Modules'}->{'Lock'}->lock_shared;
+
+    my $value = $self->{'Store'}->FETCH( $key );
+
+    $self->{'Modules'}->{'Lock'}->unlock;
 
     return $self->{'Modules'}->{'Serialise'}->deserialise( $value );
 }
@@ -106,12 +99,11 @@ sub STORE {
 
     $value = $self->{'Modules'}->{'Serialise'}->serialise( $value );
     
-    my $rv;
-    {
-        $self->{'Modules'}->{'Lock'}->lock_exclusive;
-        $rv = $self->{'Store'}->STORE( $key, $value );
-        $self->{'Modules'}->{'Lock'}->unlock;
-    }
+    $self->{'Modules'}->{'Lock'}->lock_exclusive;
+
+    my $rv = $self->{'Store'}->STORE( $key, $value );
+
+    $self->{'Modules'}->{'Lock'}->unlock;
 
     return $rv;
 }
@@ -128,14 +120,16 @@ sub TIEHASH {
     #   options for framework components.
 
     unless ( ref $args eq 'HASH' ) {
+
         croak( __PACKAGE__, '->TIEHASH : First argument to TIEHASH constructor should be a hash reference' );
+
     }
 
     #   The following simply cleans up the keys of the passed argument hash so that 
     #   all keys are word-like with an uppercase first character and all lowercase 
     #   for the remaining characters.
     #
-    #   The result is stored in $self->{'Config'} so that these arguments can be 
+    #   The result is stored in $self->{ 'Config' } so that these arguments can be 
     #   accessed by component modules.
 
     $self->{'Config'} = { map { ucfirst lc $_ => delete ${$args}{$_} } keys %{$args} };
@@ -150,17 +144,21 @@ sub TIEHASH {
     #   Tie::MLDBM framework) is called upon.
 
     my %modules = (
-        'Lock'      =>  'Null',
-        'Serialise' =>  undef,
-        'Store'     =>  undef
+        'Lock'          =>  'Null',
+        'Serialise'     =>  undef,
+        'Store'         =>  undef
     );
 
     foreach my $arg ( keys %modules ) {
+
         if ( exists $self->{'Config'}->{$arg} ) {
+
             $modules{$arg} = join '::', __PACKAGE__, $arg, $self->{'Config'}->{$arg};
             eval "require $modules{$arg}" or
                 croak( __PACKAGE__, '->TIEHASH : Cannot include framework component module ', $modules{$arg}, ' - ', $! );
+
         }
+
     }
 
     $self->{'Modules'} = \%modules;
@@ -371,6 +369,10 @@ Instead, this operation should be performed in a two-step process, like thus:
 
 This limitation exists because the perl TIEHASH interface currently has no support 
 for multidimensional ties.
+
+=head1 VERSION
+
+1.04
 
 =head1 AUTHOR
 

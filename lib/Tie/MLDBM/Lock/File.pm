@@ -6,7 +6,7 @@ use IO::File;
 use strict;
 use vars qw/ $VERSION /;
 
-$VERSION = '1.03';
+$VERSION = '1.04';
 
 
 sub lock_exclusive {
@@ -30,6 +30,7 @@ sub lock_exclusive {
         my $fh = IO::File->new( '+>' . $file ) or
             croak( __PACKAGE__, '->lock_exclusive : Cannot open temporary lock file - ', $! );
         $self->{'Lock'} = $fh;
+
     }
     
     flock( $self->{'Lock'}, LOCK_EX ) or
@@ -60,6 +61,7 @@ sub lock_shared {
         my $fh = IO::File->new( '+>' . $file ) or 
             croak( __PACKAGE__, '->lock_shared : Cannot open temporary lock file - ', $! );
         $self->{'Lock'} = $fh;
+
     }
     
     flock( $self->{'Lock'}, LOCK_SH ) or
@@ -82,6 +84,7 @@ sub unlock {
         $self->{'Lock'}->close;
 
         delete $self->{'Lock'};
+
     }
     $self->{'Lock'} = undef;
 

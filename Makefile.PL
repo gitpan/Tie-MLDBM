@@ -1,5 +1,8 @@
 use ExtUtils::MakeMaker;
 WriteMakefile(
     'NAME'          =>  'Tie::MLDBM',
-    'VERSION_FROM'  =>  'lib/Tie/MLDBM.pm',
+    'PREREQ_PM'         =>  {
+        'Tie::DBI'          =>  0.91
+    },
+    'VERSION_FROM'  =>  'lib/Tie/MLDBM.pm'
 );

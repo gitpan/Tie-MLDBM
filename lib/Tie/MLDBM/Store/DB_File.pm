@@ -1,11 +1,12 @@
 package Tie::MLDBM::Store::DB_File;
 
-use base qw/ DB_File /;
+use DB_File;
 
 use strict;
-use vars qw/ $VERSION /;
+use vars qw/ @ISA $VERSION /;
 
-$VERSION = '1.03';
+@ISA = qw/ DB_File /;
+$VERSION = '1.04';
 
 
 1;

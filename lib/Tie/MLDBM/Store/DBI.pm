@@ -1,11 +1,12 @@
 package Tie::MLDBM::Store::DBI;
 
-use base qw/ Tie::DBI /;
+use Tie::DBI;
 
 use strict;
-use vars qw/ $VERSION /;
+use vars qw/ @ISA $VERSION /;
 
-$VERSION = '1.03';
+@ISA = qw/ Tie::DBI /;
+$VERSION = '1.04';
 
 
 1;

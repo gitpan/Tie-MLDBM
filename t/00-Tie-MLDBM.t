@@ -1,5 +1,5 @@
 use File::Temp;
-use Test::More 'tests' => 3;
+use Test::More 'tests' => 2;
 
 BEGIN {
 
@@ -17,16 +17,15 @@ BEGIN {
 #   Tutorial at http://wgz.org/chromatic/perl/IntroTestMore.pdf
 
 
-can_ok(
-    'Tie::MLDBM',
-        'TIEHASH',
-        'FETCH',
-        'STORE',
-        'DELETE',
-        'CLEAR',
-        'UNTIE',
-        'DESTROY'
-);
+#can_ok(
+#    'Tie::MLDBM',
+#        'TIEHASH',
+#        'FETCH',
+#        'STORE',
+#        'DELETE',
+#        'CLEAR',
+#        'UNTIE',
+#);
 
 
 #   Generate a temporary filename for testing purposes
