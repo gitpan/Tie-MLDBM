@@ -7,7 +7,7 @@ use strict;
 use vars qw/ @ISA $AUTOLOAD $VERSION /;
 
 @ISA = qw/ Tie::Hash /;
-$VERSION = '1.01';
+$VERSION = '1.02';
 
 
 sub CLEAR {

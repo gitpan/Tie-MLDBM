@@ -3,12 +3,12 @@ package Tie::MLDBM::Lock::Null;
 use strict;
 use vars qw/ $VERSION /;
 
-$VERSION = '1.01';
+$VERSION = '1.02';
 
 
-sub LOCK_EX { 1 }
-sub LOCK_SH { 1 }
-sub LOCK_UN { 1 }
+sub lock_exclusive { 1 }
+sub lock_shared { 1 }
+sub unlock { 1 }
 
 
 1;
