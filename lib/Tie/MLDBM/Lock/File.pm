@@ -6,82 +6,79 @@ use IO::File;
 use strict;
 use vars qw/ $VERSION /;
 
-$VERSION = '1.02';
+$VERSION = '1.03';
 
 
 sub lock_exclusive {
-    my $self = shift;
+    my ( $self ) = @_;
 
-    #   This module stores the file handle of the lock file in the self object
-    #   under the name 'Lock' - If this is the first lock action which is called of
-    #   this module, this file handle will not have been created and as such will
+    #   This module stores the file handle of the lock file in the self object 
+    #   under the name 'Lock' - If this is the first lock action which is called of 
+    #   this module, this file handle will not have been created and as such will 
     #   need to be created and stored before any further action can be taken.
 
-    unless (exists $self->{'Lock'}) {
+    unless ( exists $self->{'Lock'} ) {
 
-        #   The filename of the lock file can be specified by the 'Lockfile'
-        #   argument which can be passed to the Tie::MLDBM object constructor -
+        #   The filename of the lock file can be specified by the 'Lockfile' 
+        #   argument which can be passed to the Tie::MLDBM object constructor - 
         #   Alternatively, the name 'Tie-MLDBM-Lock-File.lock' is used.
 
-        my $file = $self->{'Config'}->{'Lockfile'} || 'Tie-MLDBM-Lock-File.lock';
+        my $file = $self->{'Config'}->{'Lockfile'} or 'Tie-MLDBM-Lock-File.lock';
 
         #   Open lock file and store file handle in the self object
 
-        my $fh = IO::File->new('+>' . $file) ||
-            croak( __PACKAGE__, '->LOCK_EX : Cannot open temporary lock file - ', $! );
+        my $fh = IO::File->new( '+>' . $file ) or
+            croak( __PACKAGE__, '->lock_exclusive : Cannot open temporary lock file - ', $! );
         $self->{'Lock'} = $fh;
     }
     
-    flock($self->{'Lock'}, LOCK_EX) ||
-        croak( __PACKAGE__, '->LOCK_EX : Cannot acquire exclusive lock on file handle - ', $! );
-
-    #   $self->lock_sync;
+    flock( $self->{'Lock'}, LOCK_EX ) or
+        croak( __PACKAGE__, '->lock_exclusive : Cannot acquire exclusive lock on file handle - ', $! );
 
     return 1;
 }
 
 
 sub lock_shared {
-    my $self = shift;
+    my ( $self ) = @_;
 
     #   This module stores the file handle of the lock file in the self object
     #   under the name 'Lock' - If this is the first lock action which is called of
     #   this module, this file handle will not have been created and as such will
     #   need to be created and stored before any further action can be taken.
 
-    unless (exists $self->{'Lock'}) {
+    unless ( exists $self->{'Lock'} ) {
 
         #   The filename of the lock file can be specified by the 'Lockfile'
         #   argument which can be passed to the Tie::MLDBM object constructor -
         #   Alternatively, the name 'Tie-MLDBM-Lock-File.lock' is used.
 
-        my $file = $self->{'Config'}->{'Lockfile'} || 'Tie-MLDBM-Lock-File.lock';
+        my $file = $self->{'Config'}->{'Lockfile'} or 'Tie-MLDBM-Lock-File.lock';
 
         #   Open lock file and store file handle in the self object
 
-        my $fh = IO::File->new('+>' . $file) ||
-            croak( __PACKAGE__, '->LOCK_SH : Cannot open temporary lock file - ', $! );
+        my $fh = IO::File->new( '+>' . $file ) or 
+            croak( __PACKAGE__, '->lock_shared : Cannot open temporary lock file - ', $! );
         $self->{'Lock'} = $fh;
     }
     
-    flock($self->{'Lock'}, LOCK_SH) ||
-        croak( __PACKAGE__, '->LOCK_SH : Cannot acquire shared lock on file handle - ', $! );
-
-    #   $self->lock_sync;
+    flock( $self->{'Lock'}, LOCK_SH ) or
+        croak( __PACKAGE__, '->lock_shared : Cannot acquire shared lock on file handle - ', $! );
 
     return 1;
 }
 
+
 sub unlock { 
-    my $self = shift;
+    my ( $self ) = @_;
 
     #   This module stores the file handle of the lock file in the self object
     #   under the name 'Lock' - If this object element does not exist then
     #   presumably no lock file has been created and no action should be taken.
 
-    if (exists $self->{'Lock'}) {
+    if ( exists $self->{'Lock'} ) {
 
-        flock($self->{'Lock'}, LOCK_UN);
+        flock( $self->{'Lock'}, LOCK_UN );
         $self->{'Lock'}->close;
 
         delete $self->{'Lock'};

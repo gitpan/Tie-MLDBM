@@ -7,48 +7,79 @@ use strict;
 use vars qw/ @ISA $AUTOLOAD $VERSION /;
 
 @ISA = qw/ Tie::Hash /;
-$VERSION = '1.02';
+$VERSION = '1.03';
+
+
+sub AUTOLOAD {
+    my ( $self, @params ) = @_;
+
+    #   Parse method name from $AUTOLOAD variable and validate this method against 
+    #   a list of methods allowed to be accessed through the AUTOLOAD subroutine.
+
+    my $method = $AUTOLOAD;
+    $method =~ s/.*:://;
+
+    my @methods = qw/ EXISTS FIRSTKEY NEXTKEY /;
+
+    unless ( grep /\Q$method\E/, @methods ) {
+        croak( __PACKAGE__, '->AUTOLOAD : Unsupported method for tied object - ', $method );
+    }
+
+    my $rv;
+    {
+        $self->{'Modules'}->{'Lock'}->lock_shared;
+        $rv = $self->{'Store'}->$method( @params );
+        $self->{'Modules'}->{'Lock'}->unlock;
+    }
+
+    return $rv;
+}
 
 
 sub CLEAR {
-    my $self = shift;
+    my ( $self, @params ) = @_;
 
-    my $value;
-    if ($self->lock_exclusive) {
-        $value = $self->{'Store'}->CLEAR(@_);
+    #   Acquire an exclusive lock, execute the CLEAR method on the tied hash and 
+    #   synchronise the tied hash.  The synchronisation of this hash is performed 
+    #   by the Sync method of this class by way of re-opening the tied hash object 
+    #   and storing this object reference
+
+    my $rv;
+    {
+        $self->{'Modules'}->{'Lock'}->lock_exclusive;
+        $rv = $self->{'Store'}->CLEAR( @params );
+        $self->{'Modules'}->{'Lock'}->unlock;
     }
-    $self->unlock;
-    return $value;
+    $self->Sync;
+
+    return $rv;
 }
 
 
 sub DELETE {
-    my $self = shift;
+    my ( $self, @params ) = @_;
 
-    my $value;
-    if ($self->lock_exclusive) {
-        $value = $self->{'Store'}->DELETE(@_);
+    #   Acquire an exclusive lock and execute the DELETE method on the tied hash.
+
+    my $rv;
+    {
+        $self->{'Modules'}->{'Lock'}->lock_exclusive;
+        $rv = $self->{'Store'}->DELETE( @params );
+        $self->{'Modules'}->{'Lock'}->unlock;
     }
-    $self->unlock;
-    return $value;
+
+    return $rv;
 }
 
 
-sub EXISTS {
-    my $self = shift;
-
-    my $value;
-    if ($self->lock_shared) {
-        $value = $self->{'Store'}->EXISTS(@_);
-    }
-    $self->unlock;
-    return $value;
+sub DESTROY {
+    my ( $self, @params ) = @_;
+    return $self->{'Store'}->DESTROY( @params );
 }
 
 
 sub FETCH {
-    my $self = shift;
-    my ($key) = @_;
+    my ( $self, $key ) = @_;
 
     #   Retrieve the value indexed by the passed key argument from the second-level
     #   tied hash.  This fetched value is then deserialised using the serialisation
@@ -56,76 +87,52 @@ sub FETCH {
     #   process.
 
     my $value;
-    if ($self->lock_shared) {
-        $value = $self->{'Store'}->FETCH($key);
+    {
+        $self->{'Modules'}->{'Lock'}->lock_shared;
+        $value = $self->{'Store'}->FETCH( $key );
+        $self->{'Modules'}->{'Lock'}->unlock;
     }
-    $self->unlock;
 
-    return $self->{'Modules'}->{'Serialise'}->deserialise($value);
-}
-
-
-sub FIRSTKEY {
-    my $self = shift;
-
-    my $value;
-    if ($self->lock_shared) {
-        $value = $self->{'Store'}->FIRSTKEY(@_);
-    }
-    $self->unlock;
-    return $value;
-}
-
-
-sub NEXTKEY {
-    my $self = shift;
-
-    my $value;
-    if ($self->lock_shared) {
-        $value = $self->{'Store'}->NEXTKEY(@_);
-    }
-    $self->unlock;
-    return $value;
+    return $self->{'Modules'}->{'Serialise'}->deserialise( $value );
 }
 
 
 sub STORE {
-    my $self = shift;
-    my ($key, $value) = (@_);
+    my ( $self, $key, $value ) = @_;
 
     #   Serialise the passed value argument using the serialisation component
     #   module of the Tie::MLDBM framework.  The result of this serialisation is
     #   stored in the second-level tied hash.
 
-    $value = $self->{'Modules'}->{'Serialise'}->serialise($value);
+    $value = $self->{'Modules'}->{'Serialise'}->serialise( $value );
     
     my $rv;
-    if ($self->lock_exclusive) {
-        $rv = $self->{'Store'}->STORE($key, $value);
+    {
+        $self->{'Modules'}->{'Lock'}->lock_exclusive;
+        $rv = $self->{'Store'}->STORE( $key, $value );
+        $self->{'Modules'}->{'Lock'}->unlock;
     }
-    $self->unlock;
 
     return $rv;
 }
 
 
 sub TIEHASH {
-    my $class = shift;
+    my ( $class, $args, @params ) = @_;
     my $self = bless {}, $class;
 
-    #   The first argument to the TIEHASH object constructor should be a hash
-    #   reference which contains configuration options for this framework.  There
-    #   is no strict checking of the elements of the passed hash so as to allow for
-    #   the expansion of this framework and definition of additional configuration
+    #   The first argument to the TIEHASH object constructor should be a hash 
+    #   reference which contains configuration options for this framework.  There 
+    #   is no strict checking of the elements of the passed hash so as to allow for 
+    #   the expansion of this framework and definition of additional configuration 
     #   options for framework components.
 
-    my $args = shift;
-    unless (ref $args eq 'HASH') {
+    unless ( ref $args eq 'HASH' ) {
         croak( __PACKAGE__, '->TIEHASH : First argument to TIEHASH constructor should be a hash reference' );
     }
 
-    #   The following simply cleans up the keys of the passed argument hash so that
-    #   all keys are word-like with an uppercase first character and all lowercase
+    #   The following simply cleans up the keys of the passed argument hash so that 
+    #   all keys are word-like with an uppercase first character and all lowercase 
     #   for the remaining characters.
     #
     #   The result is stored in $self->{'Config'} so that these arguments can be 
@@ -133,14 +140,14 @@ sub TIEHASH {
 
     $self->{'Config'} = { map { ucfirst lc $_ => delete ${$args}{$_} } keys %{$args} };
 
-    #   The %modules hash contains a list of configuration parameters which may be
-    #   specified within the hash reference argument to the TIEHASH object
+    #   The %modules hash contains a list of configuration parameters which may be 
+    #   specified within the hash reference argument to the TIEHASH object 
     #   constructor.
     #
-    #   The hash of configuration parameters are then iterated through and if any of
-    #   the options specified in the %modules hash are present, the component module
-    #   to which the configuration option refers (at this level of the Tie::MLDBM
-    #   framework) is called upon.
+    #   The hash of configuration parameters are then iterated through and if any 
+    #   of the options specified in the %modules hash are present, the component 
+    #   module to which the configuration option refers (at this level of the 
+    #   Tie::MLDBM framework) is called upon.
 
     my %modules = (
         'Lock'      =>  'Null',
@@ -148,8 +155,8 @@ sub TIEHASH {
         'Store'     =>  undef
     );
 
-    foreach my $arg (keys %modules) {
-        if (exists $self->{'Config'}->{$arg}) {
+    foreach my $arg ( keys %modules ) {
+        if ( exists $self->{'Config'}->{$arg} ) {
             $modules{$arg} = join '::', __PACKAGE__, $arg, $self->{'Config'}->{$arg};
             eval "require $modules{$arg}" or
                 croak( __PACKAGE__, '->TIEHASH : Cannot include framework component module ', $modules{$arg}, ' - ', $! );
@@ -158,14 +165,14 @@ sub TIEHASH {
 
     $self->{'Modules'} = \%modules;
 
-    #   The arguments passed to the TIEHASH method of this class are stored 
-    #   for re-use at a later stage after locking or CLEAR operations where the
-    #   tied hash is synchronised. (Not implemented)
+    #   The arguments passed to the TIEHASH method of this class are stored for 
+    #   re-use at a later stage after locking or CLEAR operations where the tied 
+    #   hash is synchronised.
 
-    $self->{'Args'} = [ @_ ];
+    $self->{'Args'} = [ @params ];
 
-    #   Create a second-level tie to the underlying storage mechanism for
-    #   serialised data structures and store the tied object within the blessed
+    #   Create a second-level tie to the underlying storage mechanism for 
+    #   serialised data structures and store the tied object within the blessed 
     #   package object.
 
     my $db;
@@ -177,9 +184,26 @@ sub TIEHASH {
 }
 
 
+sub Sync {
+    my ( $self ) = @_;
+
+    #   The synchronisation of the tied hash is carried out in the same manner by  
+    #   which this is achieved in MLDBM::Sync.  This calls for the re-opening of 
+    #   the tied hash object and storing this object reference in the Tie::MLDBM 
+    #   class object.
+
+    my $db;
+    $db = $self->{'Modules'}->{'Store'}->TIEHASH( @{ $self->{'Args'} } ) or
+        croak( __PACKAGE__, '->Sync : Failed to tie second level hash object - ', $! );
+    $self->{'Store'} = $db;
+
+    return $self;
+}
+
+
 sub UNTIE {
-    my $self = shift;
-    return $self->{'Store'}->UNTIE(@_);
+    my ( $self, @params ) = @_;
+    return $self->{'Store'}->UNTIE( @params );
 }
 
 
@@ -235,14 +259,14 @@ little in the way of a learning curve in its usage.
 
 The mandatory first argument of the TIEHASH interface of this module is a hash 
 reference which contains configuration parameters for the B<Tie::MLDBM> framework. 
-These configuration parameters define the behaviour and component modules of 
-the B<Tie::MLDBM>.  
+These configuration parameters define the interface behaviour and component modules 
+of the B<Tie::MLDBM> interface.  
 
 The following configuration parameters are mandatory:
 
 =over 4
 
-=item Lock
+=item B<Lock>
 
 The Lock parameter defines the B<Tie::MLDBM::Lock::*> component module to be 
 employed by the B<Tie::MLDBM> framework for locking and synchronisation.  
@@ -255,16 +279,16 @@ implementing any resource synchronisation or locking.
 The available locking and synchronisation mechanisms are dictated by those 
 modules installed in the B<Tie::MLDBM::Lock::*> namespace.
 
-=item Serialisation
+=item B<Serialise>
 
-The Serialisation parameter defines the B<Tie::MLDBM::Serialisation::*> component 
-module to be employed by the B<Tie::MLDBM> framework for the serialisation of 
-nested data structures into flat forms ready for persistent storage.
+The Serialise parameter defines the B<Tie::MLDBM::Serialise::*> component module 
+to be employed by the B<Tie::MLDBM> framework for the serialisation of nested data 
+structures into flat forms ready for persistent storage.
 
 The available serialisation mechanisms are dictated by those modules installed 
-in the B<Tie::MLDBM::Serialisation::*> namespace.
+in the B<Tie::MLDBM::Serialise::*> namespace.
 
-=item Store
+=item B<Store>
 
 The Store parameter defines the B<Tie::MLDBM::Store::*> component module to be 
 employed by the B<Tie::MLDBM> framework for the persistent storage of serialised 
@@ -286,6 +310,8 @@ passed directly onto the underlying storage TIEHASH, as defined by the C<Store>
 configuration parameter.  This arrangement allows for any module employing a 
 TIEHASH interface to a persistent store to be used by the B<Tie::MLDBM> framework, 
 for the persistent storage of serialised data.
+
+=head1 EXAMPLES
 
 =head2 Example Using DB_File
 
@@ -329,11 +355,11 @@ serialised by B<Storable>.
 
 =head1 WARNINGS
 
-The addition or alteration of elements to nested data structures is not 
-entirely transparent in Perl.  As such, in order to store a reference or modify 
-an existing reference value within a tied hash, the value must first be 
-retrieved and stored in a temporary variable before modification.  For example, 
-the following will not work:
+The addition or alteration of elements to nested data structures is not entirely 
+transparent in Perl.  As such, in order to store a reference or modify an existing 
+reference value within a tied hash, the value must first be retrieved and stored in 
+a temporary variable before modification.  For example, the following will not 
+work:
 
  $hash{'key'}{'subkey'} = 'value';   #   Will not work
 
@@ -343,8 +369,8 @@ Instead, this operation should be performed in a two-step process, like thus:
  $temp->{'subkey'} = 'value';
  $hash{'key'} = $temp;               #   Store element
 
-This limitation exists because the perl TIEHASH interface currently has no
-support for multidimensional ties.
+This limitation exists because the perl TIEHASH interface currently has no support 
+for multidimensional ties.
 
 =head1 AUTHOR
 

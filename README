@@ -42,7 +42,7 @@ INTERFACE
     The mandatory first argument of the TIEHASH interface of this module is
     a hash reference which contains configuration parameters for the
     Tie::MLDBM framework. These configuration parameters define the
-    behaviour and component modules of the Tie::MLDBM.
+    interface behaviour and component modules of the Tie::MLDBM interface.
 
     The following configuration parameters are mandatory:
 
@@ -60,14 +60,14 @@ INTERFACE
         The available locking and synchronisation mechanisms are dictated by
         those modules installed in the Tie::MLDBM::Lock::* namespace.
 
-    Serialisation
-        The Serialisation parameter defines the Tie::MLDBM::Serialisation::*
+    Serialise
+        The Serialise parameter defines the Tie::MLDBM::Serialise::*
         component module to be employed by the Tie::MLDBM framework for the
         serialisation of nested data structures into flat forms ready for
         persistent storage.
 
         The available serialisation mechanisms are dictated by those modules
-        installed in the Tie::MLDBM::Serialisation::* namespace.
+        installed in the Tie::MLDBM::Serialise::* namespace.
 
     Store
         The Store parameter defines the Tie::MLDBM::Store::* component
@@ -90,6 +90,7 @@ INTERFACE
     used by the Tie::MLDBM framework, for the persistent storage of
     serialised data.
 
+EXAMPLES
   Example Using DB_File
     An example of the TIEHASH interface of Tie::MLDBM, employing the DB_File
     TIEHASH interface for persistent storage:

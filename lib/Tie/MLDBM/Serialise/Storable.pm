@@ -5,18 +5,18 @@ use Storable;
 use strict;
 use vars qw/ $VERSION /;
 
-$VERSION = '1.02';
+$VERSION = '1.03';
 
 
 sub deserialise {
-    my $self = shift;
-    return Storable::thaw( shift );
+    my ( $self, $arg ) = @_;
+    return Storable::thaw( $arg );
 }
 
 
 sub serialise {
-    my $self = shift;
-    return Storable::nfreeze( shift );
+    my ( $self, $arg ) = @_;
+    return Storable::nfreeze( $arg );
 }
 
 
