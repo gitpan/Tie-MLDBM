@@ -91,7 +91,6 @@ INTERFACE
     serialised data.
 
   Example Using DB_File
-
     An example of the TIEHASH interface of Tie::MLDBM, employing the DB_File
     TIEHASH interface for persistent storage:
 
@@ -102,11 +101,10 @@ INTERFACE
          'Store'     =>  'DB_File'
      }, 'testdb.dbm', O_CREAT|O_RDWR, 0640 or die $!;
 
-    The above example creates a persistent store for the hash "%test" called
+    The above example creates a persistent store for the hash %test called
     "testdb.dbm" with DB_File in which data is serialised using Storable.
 
   Example Using DBI
-
     An example of the TIEHASH interface of Tie::MLDBM, employing the TIEHASH
     interface of Tie::DBI (by means of Tie::MLDBM::Store::DBI for persistent
     storage:
@@ -126,7 +124,7 @@ INTERFACE
          'CLOBBER'   =>  0
      } or die $!;
 
-    The above example creates a persistent store for the hash "%db" which
+    The above example creates a persistent store for the hash %db which
     employs the "sessions" table of a PostgreSQL database for the storage of
     data serialised by Storable.
 
@@ -156,5 +154,5 @@ COPYRIGHT
     Copyright 2002 Rob Casey, robau@cpan.org
 
 SEE ALSO
-    the MLDBM manpage, the MLDBM::Sync manpage
+    MLDBM, MLDBM::Sync
 

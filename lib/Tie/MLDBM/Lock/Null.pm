@@ -3,7 +3,7 @@ package Tie::MLDBM::Lock::Null;
 use strict;
 use vars qw/ $VERSION /;
 
-$VERSION = '1.00';
+$VERSION = '1.01';
 
 
 sub LOCK_EX { 1 }

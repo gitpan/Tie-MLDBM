@@ -1,6 +1,5 @@
 MANIFEST
 Makefile.PL
-Makefile.old
 README
 lib/Tie/MLDBM.pm
 lib/Tie/MLDBM/Lock/File.pm

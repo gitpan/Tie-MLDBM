@@ -5,7 +5,7 @@ use base qw/ Tie::DBI /;
 use strict;
 use vars qw/ $VERSION /;
 
-$VERSION = '1.00';
+$VERSION = '1.01';
 
 
 1;
